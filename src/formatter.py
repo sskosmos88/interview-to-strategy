@@ -51,16 +51,6 @@ def _case_rows(cases: list[dict]) -> list[list[str]]:
     return rows
 
 
-def _format_contacts(contacts: dict) -> str:
-    if not contacts:
-        return "- _контакты не указаны_"
-    lines = []
-    for key, value in contacts.items():
-        label = key.capitalize()
-        lines.append(f"- **{label}:** {value}")
-    return "\n".join(lines)
-
-
 def _first_quote(quotes: list[str]) -> str:
     for q in quotes:
         cleaned = re.sub(r"^[\s\-•]+", "", q).strip()
@@ -69,9 +59,23 @@ def _first_quote(quotes: list[str]) -> str:
     return ""
 
 
+def _signature_block(producer: Optional[dict]) -> str:
+    if not producer:
+        return ""
+    lines = []
+    if producer.get("name"):
+        lines.append(f"**Подготовил:** {producer['name']}")
+    for key in ["phone", "telegram", "site", "vk", "email"]:
+        if producer.get(key):
+            label = {"phone": "Телефон", "telegram": "Telegram", "site": "Сайт", "vk": "VK", "email": "Email"}[key]
+            lines.append(f"**{label}:** {producer[key]}")
+    return "\n".join(lines)
+
+
 def render(data: InterviewData, producer: Optional[dict] = None) -> str:
     today = datetime.now().strftime("%d.%m.%Y")
     name = data.name or "[Имя специалиста]"
+    role = data.role or "[роль специалиста]"
 
     offer = data.offer or "[УТП — сформулировать после уточнения]"
     difference = data.difference or "[отличие — уточнить]"
@@ -87,20 +91,18 @@ def render(data: InterviewData, producer: Optional[dict] = None) -> str:
     if not first_steps:
         first_steps.append("Согласовать позиционирование и УТП.")
         first_steps.append("Собрать первые отзывы и кейсы.")
-        first_steps.append("Заполнить одну профильную площадку.")
-
-    quote = _first_quote(data.quotes)
+        first_steps.append("Заполнить один канал продвижения.")
 
     # Asset table rows
     asset_rows = []
     if data.years_experience:
-        asset_rows.append([f"{data.years_experience} лет опыта и обучения", "Глубина и экспертность", "Позиционирование через опыт"])
+        asset_rows.append([f"{data.years_experience} лет опыта", "Экспертность и доверие", "Позиционирование через опыт"])
     if data.role:
         asset_rows.append([data.role, "Понятная роль на рынке", "Заголовки профилей"])
-    if difference:
+    if difference and difference.startswith("[") is False:
         asset_rows.append(["Отличие", difference, "УТП и ключевые сообщения"])
     if data.cases:
-        asset_rows.append([f"{len(data.cases)} живых кейса", "Социальное доказательство", "Тексты для площадок и постов"])
+        asset_rows.append([f"{len(data.cases)} кейса", "Социальное доказательство", "Тексты для площадок и постов"])
     if not asset_rows:
         asset_rows.append(["[актив 1]", "[что даёт]", "[как использовать]"])
 
@@ -109,7 +111,7 @@ def render(data: InterviewData, producer: Optional[dict] = None) -> str:
     if not data.cases:
         gap_rows.append(["Нет собранных кейсов", "Высокий", "Переписать 3–5 историй в формате «было — работа — стало»"])
     if not data.channels:
-        gap_rows.append(["Нет заполненных площадок", "Высокий", "Заполнить профили на B17 / Самопознание / Яндекс Услуги"])
+        gap_rows.append(["Нет оформленных каналов продвижения", "Высокий", "Заполнить 1–2 площадки или профиля"])
     if data.barriers:
         gap_rows.append([data.barriers[0], "Критический", "Перефрейм: не «продавать себя», а «рассказывать о помощи»"])
     if not gap_rows:
@@ -123,31 +125,26 @@ def render(data: InterviewData, producer: Optional[dict] = None) -> str:
 
     content_plan = """| Неделя | Тема | Формат | Цель |
 | --- | --- | --- | --- |
-| 1 | «Как понять, что запрос — это не только про [симптом]» | Пост | Привлечение ЦА |
+| 1 | «Как понять, что [проблема клиента] — это не только про [поверхность]» | Пост | Привлечение ЦА |
 | 2 | Кейс: [реальный случай из интервью] | Пост / карусель | Социальное доказательство |
 | 3 | «Чем мой подход отличается от [типичного способа]» | Пост | Объяснение метода |
 | 4 | Вопросы аудитории: ответ на частый вопрос | Пост / stories | Вовлечение |"""
 
     metrics_table = """| Метрика | Цель на 1 месяц | Цель на квартал | Как мерить |
 | --- | --- | --- | --- |
-| Заполненные площадки | 1–2 | 4 | Проверка профилей |
-| Посты | 4 | 12 | Публикации |
+| Заполненные площадки / профили | 1–2 | 4 | Проверка профилей |
+| Посты / публикации | 4 | 12 | Публикации |
 | Новые отзывы / кейсы | 2–3 | 10+ | Публикации на площадках |
-| Новые обращения | 2–3 | 30+ | Сообщения и звонки |
-| Конверсия в сессию | 30% | 50% | Сессии / обращения |"""
+| Новые обращения | 2–3 | 30+ | Сообщения, звонки, заявки |
+| Конверсия в покупку | 30% | 50% | Продажи / обращения |"""
 
-    producer_name = producer.get("name", "Саша Космос") if producer else "Саша Космос"
-    producer_phone = producer.get("phone", "+7 (909) 581-91-99") if producer else "+7 (909) 581-91-99"
-    producer_tg = producer.get("telegram", "https://t.me/sskosmos") if producer else "https://t.me/sskosmos"
-    producer_site = producer.get("site", "https://sskosmos.ru") if producer else "https://sskosmos.ru"
-    producer_vk = producer.get("vk", "https://vk.com/sskosmos88") if producer else "https://vk.com/sskosmos88"
+    signature = _signature_block(producer)
 
     doc = f"""# Результат стратегического интервью: {name}
 
 **Дата:** {today}
 **Составлено по итогам:** стратегического интервью
 **Статус:** готовый рабочий материал
-**По вопросам:** уточняйте у автора документа
 
 ---
 
@@ -156,8 +153,8 @@ def render(data: InterviewData, producer: Optional[dict] = None) -> str:
 Этот файл — результат интервьюирования и база для дальнейших действий. Всё, что здесь написано, можно использовать как черновики для профилей, площадок, постов и разговоров с клиентами.
 
 - [Разделы 3.1–3.4](#основа-для-оформления-площадок-и-контента) — тексты, готовые к копированию.
-- [Раздел 1](#документ-с-аналитикой-ваших-активов) — аналитика: почему позиционирование выглядит именно так.
-- [Раздел 2](#понимание-как-вас-правильно-показывать-рынку) — описание, как вас правильно показывать рынку.
+- [Раздел 1](#документ-с-аналитикой-ваших-активов) — аналитика активов и пробелов.
+- [Раздел 2](#понимание-как-вас-правильно-показывать-рынку) — позиционирование и аудитория.
 - [Раздел 4](#база-для-дальнейшего-продвижения) — пошаговый план. Начинайте с подраздела [4.2 «Первые 3 шага»](#первые-3-шага--начните-отсюда).
 
 Где стоит пометка **[требует проверки]** — прочитайте и подтвердите, что формулировка отражает вашу реальность. Где **[готово к публикации]** — текст можно использовать почти без правок.
@@ -174,8 +171,8 @@ def render(data: InterviewData, producer: Optional[dict] = None) -> str:
 
 **Три первых действия:**
 1. {first_steps[0]}
-2. {first_steps[1] if len(first_steps) > 1 else "Согласовать позиционирование и тексты для площадок."}
-3. {first_steps[2] if len(first_steps) > 2 else "Заполнить одну площадку и начать собирать отзывы."}
+2. {first_steps[1] if len(first_steps) > 1 else "Согласовать позиционирование и тексты для каналов."}
+3. {first_steps[2] if len(first_steps) > 2 else "Заполнить один канал продвижения и начать собирать отзывы."}
 
 ---
 
@@ -213,7 +210,7 @@ def render(data: InterviewData, producer: Optional[dict] = None) -> str:
 
 **Расшифровка:**
 
-> {name} — {data.role or "[роль]"}. {difference}
+> {name} — {role}. {difference}
 
 **Типичный сценарий входа:**
 
@@ -260,11 +257,11 @@ def render(data: InterviewData, producer: Optional[dict] = None) -> str:
 
 **Вариант 1. Короткий (для карточек площадок)**
 
-> {name} — {data.role or "[роль]"}. {offer}
+> {name} — {role}. {offer}
 
 **Вариант 2. Средний (для сайта / Telegram)**
 
-> {name} — {data.role or "[роль]"}. {difference} {offer}
+> {name} — {role}. {difference} {offer}
 
 ### 3.2. Тексты для карточек услуг
 
@@ -296,7 +293,7 @@ def render(data: InterviewData, producer: Optional[dict] = None) -> str:
 
 **Шаг 4. Мягкое предложение**
 
-> Когда вам удобно? Онлайн или очно?
+> Когда вам удобно? Онлайн или офлайн?
 
 ---
 
@@ -308,14 +305,14 @@ def render(data: InterviewData, producer: Optional[dict] = None) -> str:
 
 **Что помогает:**
 
-- Не позиционировать это как «продавать себя», а как «рассказывать о помощи, которую я умею давать».
+- Не позиционировать продвижение как «продажу себя», а как «рассказ о помощи, которую я умею давать».
 - Публиковать не «чтобы продать», а «чтобы те, кто ищет, нашли».
 
 ### 4.2. Первые 3 шага — начните отсюда {{#первые-3-шага--начните-отсюда}}
 
 1. {first_steps[0]}
 2. {first_steps[1] if len(first_steps) > 1 else "Согласовать позиционирование."}
-3. {first_steps[2] if len(first_steps) > 2 else "Заполнить одну площадку."}
+3. {first_steps[2] if len(first_steps) > 2 else "Заполнить один канал продвижения."}
 
 ### 4.3. Ключевые метрики
 
@@ -323,28 +320,11 @@ def render(data: InterviewData, producer: Optional[dict] = None) -> str:
 
 ### 4.4. Резюме
 
-{name} — {data.role or "[роль]"}. {offer} Главная задача — не агрессивно «продать», а спокойно показать: вот помощь, вот результат, вот как со мной связаться.
+{name} — {role}. {offer} Главная задача — не агрессивно «продать», а спокойно показать: вот помощь, вот результат, вот как со мной связаться.
 
 ---
 
-## 5. Услуги сопровождения и цены
-
-### Базовое оформление
-
-| Услуга | Цена | Примечание |
-| --- | --- | --- |
-| Лендинг (одностраничник) | 38 000 ₽ | Полностью готовая страница специалиста с текстами и структурой |
-| Оформление ВКонтакте | 12 000 ₽ | Единоразово: шапка, описание, закреп, визуал |
-| Заполнение профиля на площадке | 3 000 ₽ | За одну площадку. Текст, фото, настройка |
-
----
-
-**Дата:** {today}
-**Подготовил:** {producer_name}
-**Телефон:** {producer_phone}
-**Телеграм:** {producer_tg}
-**Сайт:** {producer_site}
-**VK:** {producer_vk}
+{signature}
 """
     return doc
 
