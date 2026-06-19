@@ -133,7 +133,6 @@ interview-to-strategy/
 ### Результат: стратегический документ
 ![output](docs/screenshots/output-preview.png)
 
-> Скриншоты будут добавлены после локального тестирования. Пример результата доступен в `output/strategy.md`.
 
 ## Требования
 
