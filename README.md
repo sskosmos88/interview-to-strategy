@@ -10,6 +10,90 @@
 2. Извлекает ключевые блоки: кто специалист, что продаёт, кому, за сколько, какие кейсы, какие каналы, какие барьеры.
 3. Генерирует готовый `.md` файл по шаблону финального документа для клиента.
 
+## Как установить и запустить с нуля
+
+> Эта инструкция для Windows. Если у вас Mac или Linux — шаги почти такие же, но переменные окружения задаются иначе.
+
+### 1. Скачать проект с GitHub
+
+Откройте браузер, перейдите по ссылке:
+
+```
+https://github.com/sskosmos88/interview-to-strategy
+```
+
+Нажмите зелёную кнопку **Code → Download ZIP**. Распакуйте архив в любую папку, например `C:\Users\ВашеИмя\interview-to-strategy`.
+
+Или, если у вас установлен Git, выполните в PowerShell:
+
+```powershell
+git clone https://github.com/sskosmos88/interview-to-strategy.git
+cd interview-to-strategy
+```
+
+### 2. Установить Python
+
+Программа написана на языке Python. Скачайте его здесь: https://www.python.org/downloads/
+
+При установке **обязательно поставьте галочку** «Add Python to PATH».
+
+Чтобы проверить, что Python установился, откройте PowerShell и введите:
+
+```powershell
+python --version
+```
+
+Если увидели что-то вроде `Python 3.13.0` — всё ок.
+
+### 3. Установить зависимости
+
+Зависимости — это готовые библиотеки, которые использует программа. Они перечислены в файле `requirements.txt`.
+
+Откройте PowerShell **внутри папки проекта** и выполните:
+
+```powershell
+pip install -r requirements.txt
+```
+
+Команда `pip` устанавливает всё автоматически. Это стандартный способ в Python — не нужно ничего скачивать вручную.
+
+### 4. Подготовить расшифровку интервью
+
+У вас должен быть `.txt` файл с текстом интервью. Положите его, например, в папку `data/`:
+
+```
+interview-to-strategy/
+  data/
+    my-interview.txt
+```
+
+> Инструмент не умеет расшифровывать MP3. Аудио нужно перевести в текст заранее через Whisper, Яндекс SpeechKit, Sonix и т.п.
+
+### 5. Запустить генерацию
+
+Самый простой вариант — локальная модель Ollama (бесплатно, без API-ключей):
+
+```powershell
+# 1. Скачайте и установите Ollama: https://ollama.com/
+# 2. Скачайте модель:
+ollama pull llama3
+
+# 3. Запустите генератор:
+$env:OLLAMA_URL = "http://localhost:11434"
+$env:OLLAMA_MODEL = "llama3:latest"
+python main.py --input data/my-interview.txt --name "Иван Петров" --output output/strategy.md
+```
+
+Готовый файл появится в `output/strategy.md`.
+
+Если Ollama не хочется настраивать, можно запустить без LLM:
+
+```powershell
+python main.py --input data/my-interview.txt --name "Иван Петров" --output output/strategy.md --fallback
+```
+
+Результат будет проще, но работает без интернета и API-ключей.
+
 ## LLM-провайдеры
 
 Инструмент может работать с несколькими источниками анализа:
@@ -21,35 +105,15 @@
 | **Perplexity** | `PERPLEXITY_API_KEY` | OpenAI-совместимый API |
 | **Rule-based fallback** | Ничего | Работает без интернета, но результат слабее |
 
-## Быстрый старт (Ollama)
+### Настройка провайдеров
 
-```bash
-# 1. Склонировать репозиторий
-git clone https://github.com/sskosmos88/interview-to-strategy.git
-cd interview-to-strategy
-
-# 2. Установить зависимости
-pip install -r requirements.txt
-
-# 3. Указать Ollama-модель (пример для Windows PowerShell)
-$env:OLLAMA_URL = "http://localhost:11434"
-$env:OLLAMA_MODEL = "llama3:latest"
-
-# 4. Запустить на примере
-python main.py --input data/sample-transcript.txt --name "Иван Петров" --output output/strategy.md
-```
-
-Результат появится в `output/strategy.md`.
-
-## Настройка провайдеров
-
-Скопируй `.env.example` в `.env` и заполни нужный раздел:
+Скопируйте `.env.example` в `.env` и заполните нужный раздел:
 
 ```bash
 cp .env.example .env
 ```
 
-### Ollama
+#### Ollama
 
 ```env
 OLLAMA_URL=http://localhost:11434
@@ -62,13 +126,13 @@ OLLAMA_MODEL=llama3:latest
 ollama pull llama3
 ```
 
-### Anthropic Claude
+#### Anthropic Claude
 
 ```env
 ANTHROPIC_API_KEY=sk-ant-api03-your-key-here
 ```
 
-### Perplexity
+#### Perplexity
 
 ```env
 PERPLEXITY_API_KEY=pplx-your-key-here
