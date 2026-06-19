@@ -85,9 +85,14 @@ def make_terminal_screenshot(output_path: str) -> None:
     cmd = " python main.py --input data/sample-transcript.txt --name \"Иван Петров\" --output output/strategy.md --producer-name \"Алёна Орлова\" --producer-telegram \"@alena_prod\""
 
     draw.text((x, y), prompt, fill=blue, font=font)
-    px = x + font.getlength(prompt)
-    draw.text((px + 4, y), cmd, fill=text_color, font=font)
-    y += line_height * 2
+    prompt_w = int(font.getlength(prompt))
+    cmd_indent = x + prompt_w + 4
+    cmd_max_w = width - cmd_indent - 20
+    cmd_lines = wrap_text(cmd, font, cmd_max_w)
+    for cmd_line in cmd_lines:
+        draw.text((cmd_indent, y), cmd_line, fill=text_color, font=font)
+        y += line_height
+    y += line_height
 
     outputs = [
         ("[INFO] Analyzing transcript (2241 chars)...", text_color),
@@ -154,12 +159,15 @@ def make_output_preview_screenshot(md_path: str, output_path: str) -> None:
 
     lines = content.splitlines()
     i = 0
+    prev_table = False  # tracks whether the previous rendered line was a table row
+
     while i < len(lines):
         line = lines[i]
         stripped = line.strip()
 
         if not stripped:
             y += 8
+            prev_table = False
             i += 1
             continue
 
@@ -168,17 +176,21 @@ def make_output_preview_screenshot(md_path: str, output_path: str) -> None:
             draw_wrapped(stripped[2:], font_h1, heading_color)
             draw.line([(margin_x, y - 4), (width - margin_x, y - 4)], fill=border, width=1)
             y += 10
+            prev_table = False
         elif stripped.startswith("## "):
             y += 8
             draw_wrapped(stripped[3:], font_h2, heading_color)
             y += 4
+            prev_table = False
         elif stripped.startswith("### "):
             y += 6
             draw_wrapped(stripped[4:], font_h3, text_color)
             y += 2
+            prev_table = False
         elif stripped.startswith("**") and stripped.endswith("**"):
             # bold paragraph
             draw_wrapped(stripped.strip("*"), font_body, text_color)
+            prev_table = False
         elif stripped.startswith("> "):
             quote_text = stripped[2:]
             q_lines = wrap_text(quote_text, font_body, max_w - 24)
@@ -189,31 +201,44 @@ def make_output_preview_screenshot(md_path: str, output_path: str) -> None:
                 draw.text((margin_x + 12, y + 6), ql, fill=text_color, font=font_body)
                 y += font_body.size + 6
             y += 12
+            prev_table = False
         elif stripped.startswith("- "):
             bullet = "• " + stripped[2:]
             draw_wrapped(bullet, font_body, text_color, indent=0)
+            prev_table = False
         elif stripped.startswith("1. ") or stripped.startswith("2. ") or stripped.startswith("3. "):
             draw_wrapped(stripped, font_body, text_color, indent=0)
-        elif "|" in stripped and "---" not in stripped:
-            # Table row - render a simple row
+            prev_table = False
+        elif stripped.startswith("|"):
             cells = [c.strip() for c in stripped.split("|")]
             cells = [c for c in cells if c]
-            if cells:
-                col_w = (max_w - 20) // max(len(cells), 1)
-                row_h = font_small.size + 14
-                x = margin_x
-                for idx, cell in enumerate(cells):
-                    fill = table_header if i == 0 or (i > 0 and lines[i - 1].strip().startswith("|")) and "---" in lines[i - 1].strip() else bg
-                    draw.rectangle([x, y, x + col_w, y + row_h], fill=fill, outline=table_border)
-                    cell_lines = wrap_text(cell, font_small, col_w - 10)
-                    cy = y + 6
-                    for cl in cell_lines[:2]:
-                        draw.text((x + 6, cy), cl, fill=text_color, font=font_small)
-                        cy += font_small.size + 2
-                    x += col_w
-                y += row_h
+            if not cells:
+                prev_table = False
+                i += 1
+                continue
+            # Skip markdown table separator lines such as | --- | --- | --- |
+            if all(re.fullmatch(r"[-:]+", cell) for cell in cells):
+                prev_table = True
+                i += 1
+                continue
+            is_header = not prev_table
+            col_w = (max_w - 20) // max(len(cells), 1)
+            row_h = font_small.size + 14
+            x = margin_x
+            for idx, cell in enumerate(cells):
+                fill = table_header if is_header else bg
+                draw.rectangle([x, y, x + col_w, y + row_h], fill=fill, outline=table_border)
+                cell_lines = wrap_text(cell, font_small, col_w - 10)
+                cy = y + 6
+                for cl in cell_lines[:2]:
+                    draw.text((x + 6, cy), cl, fill=text_color, font=font_small)
+                    cy += font_small.size + 2
+                x += col_w
+            y += row_h
+            prev_table = True
         else:
             draw_wrapped(stripped, font_body, text_color)
+            prev_table = False
 
         i += 1
 
