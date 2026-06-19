@@ -197,15 +197,6 @@ interview-to-strategy/
 └── README.md
 ```
 
-## Скриншоты
-
-### Терминал: запуск с Ollama
-![terminal](docs/screenshots/terminal-run.png)
-
-### Результат: стратегический документ
-![output](docs/screenshots/output-preview.png)
-
-
 ## Требования
 
 - Python 3.10+
