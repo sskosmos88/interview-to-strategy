@@ -1,5 +1,5 @@
 ---
-name: interview-strategy-skill
+name: interview-to-strategy
 description: Превращает сырую текстовую расшифровку стратегического интервью специалиста в структурированный Markdown-документ с позиционированием, услугами, кейсами, контент-планом и планом продвижения. Использует LLM-провайдеры (Ollama, Claude, Perplexity) или локальный rule-based fallback. Контакты продюсера передаются через CLI. Не делает транскрибацию аудио.
 author: Sascha Kosmos
 ---
